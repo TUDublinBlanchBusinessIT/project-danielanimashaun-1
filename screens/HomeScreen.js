@@ -190,5 +190,5 @@ const styles = StyleSheet.create({
   moodDot: { width: 8, height: 8, borderRadius: 4 },
   entryMood: { color: "#e2e8f0", fontWeight: "700" },
   entryDate: { color: "#94a3b8", fontSize: 11, marginLeft: "auto" },
-  entryText: { color: "#cbd5e1", fontSize: 14, lineHeight: 19 }
+  entryText: { color: "#cbd5e1", fontSize: 15, lineHeight: 19 }
 });
