@@ -48,7 +48,9 @@ export default function NewEntryScreen({ navigation }) {
 
         <Text style={styles.label}>Your entry</Text>
         <TextInput
+        
           style={styles.input}
+          
           multiline
           placeholder="Type freely here..."
           placeholderTextColor="#64748b"
@@ -70,7 +72,7 @@ export default function NewEntryScreen({ navigation }) {
                   selected && { backgroundColor: m.color }
                 ]}
               >
-                <Ionicons name={m.icon} size={16} color={selected ? "#050814" : m.color} />
+                <Ionicons name={m.icon} size={19} color={selected ? "#050814" : m.color} />
                 <Text style={[styles.moodText, selected && { color: "#050814" }]}>{m.label}</Text>
               </Pressable>
             );
