@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, FlatList } from "react-native";
+import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+import { Ionicons } from "@expo/vector-icons";
 
 const moodColor = {
   Happy: "#fcd34d",
@@ -12,7 +13,7 @@ const moodColor = {
   Sad: "#c4b5fd"
 };
 
-export default function EntriesScreen() {
+export default function EntriesScreen({ navigation }) {
   const [entries, setEntries] = useState([]);
 
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function EntriesScreen() {
   return (
     <LinearGradient colors={["#050814", "#0b1027"]} style={styles.container}>
       <Text style={styles.title}>Your reflections</Text>
-      <Text style={styles.subtitle}>Track how your feelings evolve over time.</Text>
+      <Text style={styles.subtitle}>Tap an entry to run a What-If outcome.</Text>
 
       {entries.length === 0 ? (
         <View style={styles.empty}>
@@ -49,7 +50,16 @@ export default function EntriesScreen() {
                   <Text style={styles.mood}>{item.mood}</Text>
                   <Text style={styles.date}>{dateLabel}</Text>
                 </View>
+
                 <Text style={styles.text}>{item.text}</Text>
+
+                <Pressable
+                  onPress={() => navigation.navigate("Simulator", { text: item.text, mood: item.mood })}
+                  style={styles.whatIfBtn}
+                >
+                  <Ionicons name="crystal-ball" size={14} color="#050814" />
+                  <Text style={styles.whatIfText}>What-If</Text>
+                </Pressable>
               </View>
             );
           }}
@@ -77,7 +87,18 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4 },
   mood: { color: "#e2e8f0", fontWeight: "800" },
   date: { color: "#94a3b8", fontSize: 11, marginLeft: "auto" },
-  text: { color: "#cbd5e1", fontSize: 14, lineHeight: 19 },
+  text: { color: "#cbd5e1", fontSize: 14, lineHeight: 19, marginBottom: 8 },
+  whatIfBtn: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: "#7dd3fc"
+  },
+  whatIfText: { color: "#050814", fontSize: 12, fontWeight: "900" },
   empty: {
     marginTop: 40,
     padding: 16,
