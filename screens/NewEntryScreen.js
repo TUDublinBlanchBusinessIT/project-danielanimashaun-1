@@ -1,123 +1,98 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, KeyboardAvoidingView, Platform } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import { Ionicons } from "@expo/vector-icons";
-
-const moods = [
-  { label: "Happy", icon: "happy", color: "#fcd34d" },
-  { label: "Calm", icon: "leaf", color: "#86efac" },
-  { label: "Okay", icon: "remove-circle", color: "#93c5fd" },
-  { label: "Stressed", icon: "flash", color: "#fca5a5" },
-  { label: "Sad", icon: "rainy", color: "#c4b5fd" }
-];
 
 export default function NewEntryScreen({ navigation }) {
   const [text, setText] = useState("");
-  const [mood, setMood] = useState("Okay");
+  const [mood, setMood] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const saveEntry = async () => {
-    if (!text.trim()) {
-      Alert.alert("Empty entry", "Write at least one sentence first.");
+  async function saveEntry() {
+    if (!text.trim() || !mood) {
+      Alert.alert("Missing Information", "Please write something and pick a mood.");
       return;
     }
+
     setSaving(true);
+
     try {
       await addDoc(collection(db, "entries"), {
         text,
         mood,
-        createdAt: serverTimestamp()
+        timestamp: serverTimestamp()
       });
+
       setText("");
-      setMood("Okay");
-      setSaving(false);
+      setMood("");
       navigation.navigate("Entries");
-    } catch (e) {
-      setSaving(false);
-      Alert.alert("Error", "Could not save. Check connection.");
+    } catch (error) {
+      Alert.alert("Error", "Entry could not be saved.");
+      console.log(error);
     }
-  };
+
+    setSaving(false);
+  }
 
   return (
-    <LinearGradient colors={["#050814", "#0b1027"]} style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <Text style={styles.title}>New reflection</Text>
-        <Text style={styles.subtitle}>Describe what happened and how it felt.</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>New Reflection</Text>
 
-        <Text style={styles.label}>Your entry</Text>
-        <TextInput
-        
-          style={styles.input}
-          
-          multiline
-          placeholder="Type freely here..."
-          placeholderTextColor="#64748b"
-          value={text}
-          onChangeText={setText}
-        />
+      <TextInput
+        value={text}
+        onChangeText={setText}
+        placeholder="Write about your day..."
+        style={styles.input}
+        multiline
+      />
 
-        <Text style={styles.label}>Mood</Text>
-        <View style={styles.moodRow}>
-          {moods.map((m) => {
-            const selected = mood === m.label;
-            return (
-              <Pressable
-                key={m.label}
-                onPress={() => setMood(m.label)}
-                style={[
-                  styles.moodChip,
-                  { borderColor: m.color },
-                  selected && { backgroundColor: m.color }
-                ]}
-              >
-                <Ionicons name={m.icon} size={19} color={selected ? "#050814" : m.color} />
-                <Text style={[styles.moodText, selected && { color: "#050814" }]}>{m.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+      <View style={styles.moodRow}>
+        {["Happy", "Sad", "Stressed", "Calm"].map((m) => (
+          <TouchableOpacity
+            key={m}
+            onPress={() => setMood(m)}
+            style={[styles.moodButton, mood === m && styles.moodSelected]}
+          >
+            <Text>{m}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-        <Pressable onPress={saveEntry} disabled={saving} style={styles.saveWrap}>
-          <LinearGradient colors={["#7dd3fc", "#a78bfa"]} style={styles.saveButton}>
-            <Text style={styles.saveText}>{saving ? "Saving..." : "Save entry"}</Text>
-          </LinearGradient>
-        </Pressable>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+      <TouchableOpacity style={styles.save} onPress={saveEntry}>
+        <Text style={styles.saveText}>
+          {saving ? "Saving..." : "Save Entry"}
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 18, paddingTop: 56 },
-  title: { color: "#e2e8f0", fontSize: 24, fontWeight: "800", marginBottom: 4 },
-  subtitle: { color: "#94a3b8", fontSize: 13, marginBottom: 14 },
-  label: { color: "#e2e8f0", fontSize: 14, fontWeight: "700", marginBottom: 6 },
+  container: { flex: 1, padding: 20, backgroundColor: "#F8FAFC" },
+  title: { fontSize: 28, fontWeight: "bold", marginBottom: 20 },
   input: {
-    minHeight: 150,
-    borderRadius: 14,
+    height: 160,
+    borderColor: "#CBD5E1",
     borderWidth: 1,
-    borderColor: "#18213a",
-    backgroundColor: "#0a0f23",
-    color: "#e2e8f0",
+    padding: 15,
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    textAlignVertical: "top"
+  },
+  moodRow: { flexDirection: "row", marginVertical: 20, justifyContent: "space-between" },
+  moodButton: {
     padding: 12,
-    textAlignVertical: "top",
-    marginBottom: 14
+    backgroundColor: "#E2E8F0",
+    borderRadius: 10,
+    width: "23%",
+    alignItems: "center"
   },
-  moodRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 18 },
-  moodChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    backgroundColor: "#050814"
+  moodSelected: { backgroundColor: "#A5B4FC" },
+  save: {
+    backgroundColor: "#4F46E5",
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center"
   },
-  moodText: { color: "#e2e8f0", fontSize: 13, fontWeight: "700" },
-  saveWrap: { marginTop: "auto", marginBottom: 24 },
-  saveButton: { paddingVertical: 12, borderRadius: 999, alignItems: "center" },
-  saveText: { color: "#050814", fontSize: 15, fontWeight: "800" }
+  saveText: { color: "#fff", fontSize: 18, fontWeight: "600" }
 });
