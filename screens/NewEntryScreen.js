@@ -1,20 +1,24 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 
-export default function NewEntryScreen({ navigation }) {
+const moods = ["Happy", "Calm", "Okay", "Stressed", "Sad"];
+
+export default function NewEntryScreen() {
   const [text, setText] = useState("");
   const [mood, setMood] = useState("");
   const [saving, setSaving] = useState(false);
+  const [savedMessage, setSavedMessage] = useState("");
 
   async function saveEntry() {
     if (!text.trim() || !mood) {
-      Alert.alert("Missing Information", "Please write something and pick a mood.");
+      setSavedMessage("Please write something and select a mood.");
       return;
     }
 
     setSaving(true);
+    setSavedMessage("");
 
     try {
       await addDoc(collection(db, "entries"), {
@@ -25,9 +29,9 @@ export default function NewEntryScreen({ navigation }) {
 
       setText("");
       setMood("");
-      navigation.navigate("Entries");
+      setSavedMessage("Entry saved. You can add another reflection.");
     } catch (error) {
-      Alert.alert("Error", "Entry could not be saved.");
+      setSavedMessage("Entry could not be saved. Check your Firebase settings.");
       console.log(error);
     }
 
@@ -36,63 +40,114 @@ export default function NewEntryScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>New Reflection</Text>
+      <Text style={styles.title}>New reflection</Text>
+      <Text style={styles.subtitle}>
+        Capture what happened and how you feel so Helpr can learn your patterns.
+      </Text>
 
+      {savedMessage !== "" && (
+        <View
+          style={[
+            styles.messageBox,
+            savedMessage.startsWith("Entry saved")
+              ? styles.messageSuccess
+              : styles.messageError
+          ]}
+        >
+          <Text style={styles.messageText}>{savedMessage}</Text>
+        </View>
+      )}
+
+      <Text style={styles.label}>Your entry</Text>
       <TextInput
         value={text}
         onChangeText={setText}
-        placeholder="Write about your day..."
+        placeholder="Write freely about your day, emotions or a specific situation..."
+        placeholderTextColor="#9CA3AF"
         style={styles.input}
         multiline
       />
 
+      <Text style={styles.label}>Mood</Text>
       <View style={styles.moodRow}>
-        {["Happy", "Sad", "Stressed", "Calm"].map((m) => (
-          <TouchableOpacity
-            key={m}
-            onPress={() => setMood(m)}
-            style={[styles.moodButton, mood === m && styles.moodSelected]}
-          >
-            <Text>{m}</Text>
-          </TouchableOpacity>
-        ))}
+        {moods.map((m) => {
+          const selected = mood === m;
+          return (
+            <TouchableOpacity
+              key={m}
+              onPress={() => setMood(m)}
+              style={[styles.moodButton, selected && styles.moodSelected]}
+            >
+              <Text style={[styles.moodText, selected && styles.moodTextSelected]}>{m}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      <TouchableOpacity style={styles.save} onPress={saveEntry}>
-        <Text style={styles.saveText}>
-          {saving ? "Saving..." : "Save Entry"}
-        </Text>
+      <Text style={styles.counter}>{text.length} characters</Text>
+
+      <TouchableOpacity style={styles.save} onPress={saveEntry} disabled={saving}>
+        <Text style={styles.saveText}>{saving ? "Saving..." : "Save entry"}</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#F8FAFC" },
-  title: { fontSize: 28, fontWeight: "bold", marginBottom: 20 },
+  container: { flex: 1, paddingHorizontal: 20, paddingTop: 40, backgroundColor: "#F5F7FB" },
+  title: { fontSize: 26, fontWeight: "800", color: "#1F2933", marginBottom: 4 },
+  subtitle: { fontSize: 13, color: "#6B7280", marginBottom: 16 },
+  label: { fontSize: 14, fontWeight: "600", color: "#1F2933", marginBottom: 6 },
   input: {
-    height: 160,
-    borderColor: "#CBD5E1",
+    minHeight: 150,
+    borderRadius: 14,
     borderWidth: 1,
-    padding: 15,
-    borderRadius: 12,
-    backgroundColor: "#fff",
-    textAlignVertical: "top"
-  },
-  moodRow: { flexDirection: "row", marginVertical: 20, justifyContent: "space-between" },
-  moodButton: {
+    borderColor: "#D0D7E2",
+    backgroundColor: "#FFFFFF",
+    color: "#111827",
     padding: 12,
-    backgroundColor: "#E2E8F0",
-    borderRadius: 10,
-    width: "23%",
-    alignItems: "center"
+    textAlignVertical: "top",
+    marginBottom: 14
   },
-  moodSelected: { backgroundColor: "#A5B4FC" },
+  moodRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
+  moodButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#D0D7E2",
+    backgroundColor: "#FFFFFF"
+  },
+  moodSelected: {
+    backgroundColor: "#4F6B9A",
+    borderColor: "#4F6B9A"
+  },
+  moodText: { color: "#1F2933", fontSize: 13, fontWeight: "500" },
+  moodTextSelected: { color: "#FFFFFF", fontWeight: "700" },
+  counter: { fontSize: 12, color: "#6B7280", marginBottom: 18 },
   save: {
-    backgroundColor: "#4F46E5",
-    padding: 16,
-    borderRadius: 12,
+    marginTop: "auto",
+    marginBottom: 20,
+    backgroundColor: "#4F6B9A",
+    paddingVertical: 14,
+    borderRadius: 999,
     alignItems: "center"
   },
-  saveText: { color: "#fff", fontSize: 18, fontWeight: "600" }
+  saveText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  messageBox: {
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12
+  },
+  messageSuccess: {
+    backgroundColor: "#E2F4E6",
+    borderWidth: 1,
+    borderColor: "#9FBF9B"
+  },
+  messageError: {
+    backgroundColor: "#FEE2E2",
+    borderWidth: 1,
+    borderColor: "#F97373"
+  },
+  messageText: { fontSize: 13, color: "#1F2933" }
 });

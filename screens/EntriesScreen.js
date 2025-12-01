@@ -1,111 +1,86 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import { Ionicons } from "@expo/vector-icons";
-
-const moodColor = {
-  Happy: "#fcd34d",
-  Calm: "#86efac",
-  Okay: "#93c5fd",
-  Stressed: "#fca5a5",
-  Sad: "#c4b5fd"
-};
 
 export default function EntriesScreen({ navigation }) {
   const [entries, setEntries] = useState([]);
 
   useEffect(() => {
-    const q = query(collection(db, "entries"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-      const list = [];
-      snap.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
-      setEntries(list);
+    const q = query(collection(db, "entries"), orderBy("timestamp", "desc"));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setEntries(data);
     });
     return () => unsub();
   }, []);
 
+  function renderItem({ item }) {
+    const dateLabel =
+      item.timestamp && item.timestamp.toDate
+        ? item.timestamp.toDate().toLocaleString()
+        : "Recently";
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.row}>
+          <Text style={styles.mood}>{item.mood}</Text>
+          <Text style={styles.date}>{dateLabel}</Text>
+        </View>
+        <Text style={styles.text}>{item.text}</Text>
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() =>
+            navigation.navigate("Simulator", { text: item.text, mood: item.mood })
+          }
+        >
+          <Text style={styles.buttonText}>Run What-If</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <LinearGradient colors={["#050814", "#0b1027"]} style={styles.container}>
-      <Text style={styles.title}>Your reflections</Text>
-      <Text style={styles.subtitle}>Tap an entry to run a What-If outcome.</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>All reflections</Text>
 
       {entries.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>No entries yet. Add one in “New Entry”.</Text>
-        </View>
+        <Text style={styles.empty}>No entries yet. Add one in the New Entry tab.</Text>
       ) : (
         <FlatList
           data={entries}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => {
-            const color = moodColor[item.mood] || "#93c5fd";
-            const dateLabel =
-              item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : "Just now";
-            return (
-              <View style={styles.card}>
-                <View style={styles.headRow}>
-                  <View style={[styles.dot, { backgroundColor: color }]} />
-                  <Text style={styles.mood}>{item.mood}</Text>
-                  <Text style={styles.date}>{dateLabel}</Text>
-                </View>
-
-                <Text style={styles.text}>{item.text}</Text>
-
-                <Pressable
-                  onPress={() => navigation.navigate("Simulator", { text: item.text, mood: item.mood })}
-                  style={styles.whatIfBtn}
-                >
-                  <Ionicons name="crystal-ball" size={14} color="#050814" />
-                  <Text style={styles.whatIfText}>What-If</Text>
-                </Pressable>
-              </View>
-            );
-          }}
-          showsVerticalScrollIndicator={false}
+          renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: 30 }}
         />
       )}
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 18, paddingTop: 56 },
-  title: { color: "#e2e8f0", fontSize: 22, fontWeight: "800", marginBottom: 4 },
-  subtitle: { color: "#94a3b8", fontSize: 13, marginBottom: 12 },
+  container: { flex: 1, paddingHorizontal: 20, paddingTop: 40, backgroundColor: "#020617" },
+  title: { fontSize: 22, fontWeight: "700", color: "#e5e7eb", marginBottom: 16 },
+  empty: { color: "#9ca3af", fontSize: 14 },
   card: {
-    backgroundColor: "#0a0f23",
+    padding: 14,
+    backgroundColor: "#020617",
     borderRadius: 14,
-    padding: 12,
     borderWidth: 1,
-    borderColor: "#18213a",
-    marginBottom: 8
+    borderColor: "#1f2937",
+    marginBottom: 10
   },
-  headRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  mood: { color: "#e2e8f0", fontWeight: "800" },
-  date: { color: "#94a3b8", fontSize: 11, marginLeft: "auto" },
-  text: { color: "#cbd5e1", fontSize: 14, lineHeight: 19, marginBottom: 8 },
-  whatIfBtn: {
+  row: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6 },
+  mood: { color: "#6366f1", fontWeight: "700" },
+  date: { color: "#9ca3af", fontSize: 11 },
+  text: { color: "#e5e7eb", fontSize: 14, marginBottom: 8 },
+  button: {
     alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    backgroundColor: "#7dd3fc"
+    backgroundColor: "#6366f1",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999
   },
-  whatIfText: { color: "#050814", fontSize: 12, fontWeight: "900" },
-  empty: {
-    marginTop: 40,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#18213a",
-    backgroundColor: "#0a0f23"
-  },
-  emptyText: { color: "#94a3b8", textAlign: "center", fontSize: 14 }
+  buttonText: { color: "#e5e7eb", fontSize: 13, fontWeight: "600" }
 });
