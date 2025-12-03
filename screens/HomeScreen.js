@@ -1,194 +1,140 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, FlatList } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import { Ionicons } from "@expo/vector-icons";
 
-const moodMeta = {
-  Happy: { icon: "happy", color: "#fcd34d" },
-  Calm: { icon: "leaf", color: "#86efac" },
-  Okay: { icon: "remove-circle", color: "#93c5fd" },
-  Stressed: { icon: "flash", color: "#fca5a5" },
-  Sad: { icon: "rainy", color: "#c4b5fd" }
-};
-
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
   const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, "entries"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-      const list = [];
-      snap.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
-      setEntries(list);
-      setLoading(false);
+    const q = query(collection(db, "entries"), orderBy("timestamp", "desc"));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setEntries(data);
     });
     return () => unsub();
   }, []);
 
-  const stats = useMemo(() => {
+  const moodCounts = useMemo(() => {
     const counts = {};
     entries.forEach((e) => {
-      const m = e.mood || "Okay";
+      const m = e.mood || "Unknown";
       counts[m] = (counts[m] || 0) + 1;
     });
-    let topMood = null;
-    let topCount = 0;
-    Object.keys(counts).forEach((m) => {
-      if (counts[m] > topCount) {
-        topMood = m;
-        topCount = counts[m];
-      }
-    });
-    return { counts, topMood, topCount };
+    return counts;
   }, [entries]);
 
-  const insight = useMemo(() => {
-    if (entries.length === 0) return "Start your first reflection to let Helpr learn your patterns.";
-    if (!stats.topMood) return "Your emotions look mixed. Keep journaling so Helpr can spot deeper patterns.";
-    if (stats.topMood === "Happy" || stats.topMood === "Calm")
-      return "Your recent pattern leans positive. Notice what supports this mood and protect it.";
-    if (stats.topMood === "Sad" || stats.topMood === "Stressed")
-      return "You’ve been recording heavier emotions lately. Try slowing down, resting, and checking what’s draining you.";
-    return "Your pattern is forming. Keep writing — the clarity grows with consistency.";
-  }, [entries.length, stats.topMood]);
+  const topMood = useMemo(() => {
+    let best = null;
+    let bestCount = 0;
+    Object.keys(moodCounts).forEach((m) => {
+      if (moodCounts[m] > bestCount) {
+        best = m;
+        bestCount = moodCounts[m];
+      }
+    });
+    return best;
+  }, [moodCounts]);
 
-  const recentPreview = entries.slice(0, 3);
+  const insight = useMemo(() => {
+    if (entries.length === 0) return "Start your first reflection to let Helpr learn your emotional patterns.";
+    if (!topMood) return "Your moods are mixed. Keep journaling so a clearer pattern can emerge.";
+    if (topMood === "Happy" || topMood === "Calm") {
+      return "Your recent pattern leans positive. Notice what environments and people support that.";
+    }
+    if (topMood === "Stressed" || topMood === "Sad") {
+      return "You have logged heavier moods. Slowing down and checking what drains you could help.";
+    }
+    return "Your emotional pattern is forming. More entries will give clearer guidance.";
+  }, [entries.length, topMood]);
+
+  const recent = entries.slice(0, 5);
 
   return (
-    <LinearGradient colors={["#050814", "#0b1027", "#050814"]} style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Helpr</Text>
-        <Text style={styles.subtitle}>reflect • predict • evolve</Text>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 30 }}>
+      <Text style={styles.appName}>Helpr</Text>
+      <Text style={styles.tagline}>A calm space to reflect and look ahead.</Text>
+
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryLabel}>Total reflections</Text>
+        <Text style={styles.summaryValue}>{entries.length}</Text>
+        <Text style={styles.summaryMood}>
+          {topMood ? "Most common mood: " + topMood : "No clear mood pattern yet"}
+        </Text>
       </View>
 
-      <View style={styles.ringCard}>
-        <LinearGradient colors={["#0f172a", "#0b1120"]} style={styles.ringInner}>
-          <Text style={styles.ringLabel}>Total entries</Text>
-          {loading ? (
-            <ActivityIndicator color="#e2e8f0" />
-          ) : (
-            <Text style={styles.ringNumber}>{entries.length}</Text>
-          )}
-          <Text style={styles.ringSub}>
-            {stats.topMood ? `Most common: ${stats.topMood}` : "No pattern yet"}
-          </Text>
-        </LinearGradient>
-      </View>
-
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Ionicons name="sparkles" size={18} color="#7dd3fc" />
-          <Text style={styles.cardTitle}>Helpr Insight</Text>
-        </View>
-        <Text style={styles.cardText}>{insight}</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitleSmall}>Your mood mix</Text>
-        <View style={styles.moodRow}>
-          {Object.keys(moodMeta).map((m) => {
-            const c = stats.counts[m] || 0;
-            return (
-              <View key={m} style={[styles.moodChip, { borderColor: moodMeta[m].color }]}>
-                <Ionicons name={moodMeta[m].icon} size={14} color={moodMeta[m].color} />
-                <Text style={styles.moodChipText}>{m}</Text>
-                <Text style={styles.moodChipCount}>{c}</Text>
-              </View>
-            );
-          })}
-        </View>
+      <View style={styles.insightCard}>
+        <Text style={styles.insightTitle}>Helpr insight</Text>
+        <Text style={styles.insightText}>{insight}</Text>
       </View>
 
       <Text style={styles.sectionTitle}>Recent reflections</Text>
-      {loading ? (
-        <ActivityIndicator color="#e2e8f0" />
+      {recent.length === 0 ? (
+        <Text style={styles.emptyText}>You have no reflections yet. Add one in the Journal tab.</Text>
       ) : (
-        <FlatList
-          data={recentPreview}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => {
-            const meta = moodMeta[item.mood] || moodMeta.Okay;
-            const dateLabel =
-              item.createdAt?.toDate ? item.createdAt.toDate().toLocaleString() : "Just now";
-            return (
-              <View style={styles.entryCard}>
-                <View style={styles.entryTop}>
-                  <View style={[styles.moodDot, { backgroundColor: meta.color }]} />
-                  <Text style={styles.entryMood}>{item.mood}</Text>
-                  <Text style={styles.entryDate}>{dateLabel}</Text>
-                </View>
-                <Text style={styles.entryText} numberOfLines={2}>
-                  {item.text}
-                </Text>
-              </View>
-            );
-          }}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 24 }}
-        />
+        recent.map((item) => (
+          <TouchableOpacity
+            key={item.id}
+            style={styles.entryCard}
+            onPress={() =>
+              navigation.navigate("Simulator", { text: item.text, mood: item.mood })
+            }
+          >
+            <View style={styles.entryRow}>
+              <Text style={styles.entryMood}>{item.mood}</Text>
+              <Text style={styles.entryDate}>
+                {item.timestamp && item.timestamp.toDate
+                  ? item.timestamp.toDate().toLocaleString()
+                  : "Recently"}
+              </Text>
+            </View>
+            <Text style={styles.entryText} numberOfLines={2}>{item.text}</Text>
+            <Text style={styles.entryHint}>Tap to explore a What-If outcome</Text>
+          </TouchableOpacity>
+        ))
       )}
-    </LinearGradient>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 18, paddingTop: 56 },
-  header: { marginBottom: 18 },
-  title: { color: "#e2e8f0", fontSize: 28, fontWeight: "800", letterSpacing: 1 },
-  subtitle: { color: "#94a3b8", fontSize: 13, marginTop: 4 },
-  ringCard: { alignItems: "center", marginBottom: 14 },
-  ringInner: {
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    borderWidth: 2,
-    borderColor: "#7dd3fc",
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  ringLabel: { color: "#94a3b8", fontSize: 12 },
-  ringNumber: { color: "#e2e8f0", fontSize: 42, fontWeight: "800", marginTop: 2 },
-  ringSub: { color: "#cbd5e1", fontSize: 12, marginTop: 6 },
-  card: {
-    backgroundColor: "#0b1120",
+  container: { flex: 1, paddingHorizontal: 20, paddingTop: 40, backgroundColor: "#F5F7FB" },
+  appName: { fontSize: 28, fontWeight: "800", color: "#1F2933" },
+  tagline: { fontSize: 13, color: "#6B7280", marginBottom: 18 },
+  summaryCard: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    padding: 14,
+    padding: 16,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: "#18213a",
-    marginBottom: 10
+    borderColor: "#D0D7E2"
   },
-  cardHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 },
-  cardTitle: { color: "#e2e8f0", fontSize: 16, fontWeight: "700" },
-  cardTitleSmall: { color: "#e2e8f0", fontSize: 14, fontWeight: "700", marginBottom: 8 },
-  cardText: { color: "#cbd5e1", fontSize: 14, lineHeight: 20 },
-  moodRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  moodChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 999,
+  summaryLabel: { color: "#6B7280", fontSize: 13 },
+  summaryValue: { color: "#1F2933", fontSize: 32, fontWeight: "800", marginVertical: 4 },
+  summaryMood: { color: "#4F6B9A", fontSize: 13, fontWeight: "600" },
+  insightCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 18,
     borderWidth: 1,
-    backgroundColor: "#050814"
+    borderColor: "#D0D7E2"
   },
-  moodChipText: { color: "#e2e8f0", fontSize: 12, fontWeight: "600" },
-  moodChipCount: { color: "#94a3b8", fontSize: 12 },
-  sectionTitle: { color: "#e2e8f0", fontSize: 14, fontWeight: "700", marginTop: 6, marginBottom: 6 },
+  insightTitle: { color: "#1F2933", fontSize: 15, fontWeight: "700", marginBottom: 6 },
+  insightText: { color: "#374151", fontSize: 14, lineHeight: 20 },
+  sectionTitle: { color: "#1F2933", fontSize: 16, fontWeight: "700", marginBottom: 10 },
+  emptyText: { color: "#6B7280", fontSize: 14 },
   entryCard: {
-    backgroundColor: "#0a0f23",
+    backgroundColor: "#FFFFFF",
     borderRadius: 14,
-    padding: 12,
+    padding: 14,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#18213a",
-    marginBottom: 8
+    borderColor: "#D0D7E2"
   },
-  entryTop: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
-  moodDot: { width: 8, height: 8, borderRadius: 4 },
-  entryMood: { color: "#e2e8f0", fontWeight: "700" },
-  entryDate: { color: "#94a3b8", fontSize: 11, marginLeft: "auto" },
-  entryText: { color: "#cbd5e1", fontSize: 14, lineHeight: 19 }
+  entryRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6 },
+  entryMood: { color: "#4F6B9A", fontWeight: "700" },
+  entryDate: { color: "#9CA3AF", fontSize: 11 },
+  entryText: { color: "#1F2933", fontSize: 14, marginBottom: 4 },
+  entryHint: { color: "#7DE3FF", fontSize: 12, fontWeight: "600" }
 });
