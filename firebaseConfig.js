@@ -2,12 +2,13 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAcYB2iEE3F_xfGPtMvXmOQjF59YAq2mws",
+  authDomain: "helprapp-89c1f.firebaseapp.com",
+  projectId: "helprapp-89c1f",
+  storageBucket: "helprapp-89c1f.firebasestorage.app",
+  messagingSenderId: "536749840104",
+  appId: "1:536749840104:web:cb988587425aac301c9b5d"
+  
 };
 
 const app = initializeApp(firebaseConfig);
