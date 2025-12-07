@@ -3,6 +3,10 @@ import { View, Text, StyleSheet } from "react-native";
 import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 
+const lastFive = entries.slice(0, 5);
+const earlierFive = entries.slice(5, 10);
+
+
 const moodOrder = ["Happy", "Calm", "Okay", "Stressed", "Sad"];
 
 export default function InsightsScreen() {

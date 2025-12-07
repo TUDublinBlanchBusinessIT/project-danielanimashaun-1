@@ -6,7 +6,6 @@ import HomeScreen from "./screens/HomeScreen";
 import NewEntryScreen from "./screens/NewEntryScreen";
 import EntriesScreen from "./screens/EntriesScreen";
 import SimulatorScreen from "./screens/SimulatorScreen";
-import InsightsScreen from "./screens/InsightsScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -22,39 +21,39 @@ export default function App() {
   return (
     <NavigationContainer theme={theme}>
       <Tab.Navigator
-        screenOptions={({ route }) => ({
-          headerShown: false,
-          tabBarStyle: {
-            backgroundColor: "#0a0f23",
-            borderTopColor: "#151a33",
-            height: 64,
-            paddingBottom: 8,
-            paddingTop: 6
-          },
-          tabBarActiveTintColor: "#7dd3fc",
-          tabBarInactiveTintColor: "#94a3b8",
-          tabBarIcon: ({ color, size }) => {
-            let icon = "ellipse";
+        screenOptions={({ route }) => {
+          let icon = "ellipse";
 
-            if (route.name === "Home") icon = "sparkles";
-            if (route.name === "New Entry") icon = "add-circle";
-            if (route.name === "Entries") icon = "book";
-            if (route.name === "Simulator") icon = "planet";
-            if (route.name === "Insights") icon = "stats-chart";
+          if (route.name === "Home") icon = "sparkles";
+          if (route.name === "New Entry") icon = "add-circle";
+          if (route.name === "Entries") icon = "book";
+          if (route.name === "Simulator") icon = "planet";
 
-            return <Ionicons name={icon} size={size} color={color} />;
-          },
-          tabBarLabelStyle: {
-            fontSize: 12,
-            fontWeight: "600"
-          }
-        })}
+          return {
+            headerShown: false,
+            tabBarStyle: {
+              backgroundColor: "#0a0f23",
+              borderTopColor: "#151a33",
+              height: 64,
+              paddingBottom: 8,
+              paddingTop: 6
+            },
+            tabBarActiveTintColor: "#7dd3fc",
+            tabBarInactiveTintColor: "#94a3b8",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name={icon} size={size} color={color} />
+            ),
+            tabBarLabelStyle: {
+              fontSize: 12,
+              fontWeight: "600"
+            }
+          };
+        }}
       >
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="New Entry" component={NewEntryScreen} />
         <Tab.Screen name="Entries" component={EntriesScreen} />
         <Tab.Screen name="Simulator" component={SimulatorScreen} />
-        <Tab.Screen name="Insights" component={InsightsScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );
