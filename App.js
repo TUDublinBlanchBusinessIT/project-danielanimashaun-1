@@ -5,6 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 import HomeScreen from "./screens/HomeScreen";
 import NewEntryScreen from "./screens/NewEntryScreen";
 import EntriesScreen from "./screens/EntriesScreen";
+import SimulatorScreen from "./screens/SimulatorScreen";
+import InsightsScreen from "./screens/InsightsScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -33,9 +35,13 @@ export default function App() {
           tabBarInactiveTintColor: "#94a3b8",
           tabBarIcon: ({ color, size }) => {
             let icon = "ellipse";
+
             if (route.name === "Home") icon = "sparkles";
             if (route.name === "New Entry") icon = "add-circle";
             if (route.name === "Entries") icon = "book";
+            if (route.name === "Simulator") icon = "planet";
+            if (route.name === "Insights") icon = "stats-chart";
+
             return <Ionicons name={icon} size={size} color={color} />;
           },
           tabBarLabelStyle: {
@@ -47,6 +53,8 @@ export default function App() {
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="New Entry" component={NewEntryScreen} />
         <Tab.Screen name="Entries" component={EntriesScreen} />
+        <Tab.Screen name="Simulator" component={SimulatorScreen} />
+        <Tab.Screen name="Insights" component={InsightsScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );
