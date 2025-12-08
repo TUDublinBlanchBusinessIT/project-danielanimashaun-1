@@ -1,8 +1,16 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  ScrollView
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRoute } from "@react-navigation/native";
 
-function computeOutcome(currentMood, actionText) {
+function evaluateOutcome(currentMood, actionText) {
   const text = actionText.toLowerCase();
 
   const positiveWords = [
@@ -49,24 +57,20 @@ function computeOutcome(currentMood, actionText) {
     "quit job",
     "change career",
     "drop out",
-    "confront",
-    "buy a car",
-    "buy a house"
+    "confront"
   ];
 
   let sentimentScore = 0;
-
   positiveWords.forEach(w => {
-    if (text.includes(w)) sentimentScore += 1;
+    if (text.includes(w)) sentimentScore = sentimentScore + 1;
   });
-
   negativeWords.forEach(w => {
-    if (text.includes(w)) sentimentScore -= 1;
+    if (text.includes(w)) sentimentScore = sentimentScore - 1;
   });
 
   let changeScore = 0;
   bigChangeWords.forEach(w => {
-    if (text.includes(w)) changeScore += 1;
+    if (text.includes(w)) changeScore = changeScore + 1;
   });
 
   const moodWeight = {
@@ -78,30 +82,30 @@ function computeOutcome(currentMood, actionText) {
   };
 
   const baseMood = currentMood || "Okay";
-  const moodInfluence = moodWeight[baseMood] ?? 0;
+  const moodInfluence = moodWeight[baseMood] !== undefined ? moodWeight[baseMood] : 0;
 
   const totalScore = sentimentScore + changeScore * -0.5 + moodInfluence;
 
   let resultMood = "Okay";
   let advice =
-    "This choice looks balanced. Check if it matches how you want to treat yourself and others.";
+    "This choice looks emotionally balanced. Think about whether it matches your values and longer term goals.";
 
   if (totalScore >= 2) {
     resultMood = "Hopeful";
     advice =
-      "This path looks likely to leave you feeling lighter and more supported. Keep your boundaries clear and communicate honestly.";
+      "This path looks likely to leave you feeling lighter and more supported. Keep checking in with yourself and communicate clearly.";
   } else if (totalScore >= 1) {
     resultMood = "Calmer";
     advice =
-      "This seems like a gentle, constructive step. It may reduce pressure if you stay patient and clear about what you need.";
+      "This seems like a gentle, constructive step. It may reduce tension if you stay honest and kind.";
   } else if (totalScore <= -2) {
     resultMood = "Regretful";
     advice =
-      "This option may lead to tension or regret. Slowing down and choosing a softer action could protect you emotionally.";
+      "This option may lead to more stress or regret. It could help to pause, breathe and consider a softer alternative first.";
   } else if (totalScore <= -1) {
     resultMood = "Tense";
     advice =
-      "There is a risk that this will increase conflict or emotional distance. See if there is a way to stay firm without exploding.";
+      "There is a risk that this will increase conflict or emotional distance. Is there a way to protect your boundaries without exploding?";
   } else {
     if (changeScore > 0) {
       resultMood = "Unsure";
@@ -111,12 +115,9 @@ function computeOutcome(currentMood, actionText) {
   }
 
   if ((baseMood === "Stressed" || baseMood === "Sad") && totalScore < 1) {
-    advice +=
-      " Because you already feel heavy, choosing the most caring and least aggressive option is likely to help you more.";
-  }
-
-  if (baseMood === "Happy" && sentimentScore < 0) {
-    advice += " You are in a good place now. Be sure this choice will not damage the calm you already have.";
+    advice =
+      advice +
+      " Because you already feel low, it might help to choose the option that is least aggressive and most caring toward yourself.";
   }
 
   return { resultMood, advice };
@@ -124,8 +125,8 @@ function computeOutcome(currentMood, actionText) {
 
 export default function SimulatorScreen() {
   const route = useRoute();
-  const entryText = route?.params?.text || "";
-  const entryMood = route?.params?.mood || "Not set";
+  const entryText = route.params && route.params.text ? route.params.text : "";
+  const entryMood = route.params && route.params.mood ? route.params.mood : "Not set";
 
   const [action, setAction] = useState("");
   const [outcome, setOutcome] = useState(null);
@@ -133,63 +134,76 @@ export default function SimulatorScreen() {
   function handleRun() {
     if (!action.trim()) {
       setOutcome({
-        resultMood: "No preview",
-        advice: "Write the action you are thinking about so Helpr can give you a rough emotional outlook."
+        resultMood: "Not enough detail",
+        advice:
+          "Describe the action you are thinking about taking, even in simple words. The more specific you are, the more useful the preview will feel."
       });
       return;
     }
-    const result = computeOutcome(entryMood, action);
-    setOutcome(result);
+    const res = evaluateOutcome(entryMood, action);
+    setOutcome(res);
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.title}>What-if simulator</Text>
-      <Text style={styles.subtitle}>
-        This screen gives a rough emotional preview based on your last reflection and the action you are considering.
-      </Text>
-
-      <View style={styles.box}>
-        <Text style={styles.label}>Current mood</Text>
-        <Text style={styles.value}>{entryMood}</Text>
-
-        <Text style={[styles.label, { marginTop: 10 }]}>Recent reflection</Text>
-        <Text style={styles.entryText}>
-          {entryText || "Open the simulator from a saved reflection to see a more personal result."}
+    <LinearGradient colors={["#020617", "#020617"]} style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.title}>What-if simulator</Text>
+        <Text style={styles.subtitle}>
+          This does not tell the future. It gives you a gentle emotional preview based on your current mood and the choice you are considering.
         </Text>
-      </View>
 
-      <Text style={styles.label}>If I chose to...</Text>
-      <TextInput
-        value={action}
-        onChangeText={setAction}
-        placeholder="Example: talk calmly and explain how I feel"
-        placeholderTextColor="#64748b"
-        style={styles.input}
-        multiline
-      />
+        <View style={styles.box}>
+          <Text style={styles.label}>Current mood</Text>
+          <Text style={styles.value}>{entryMood}</Text>
 
-      <TouchableOpacity onPress={handleRun} style={styles.button}>
-        <Text style={styles.buttonText}>Run what-if</Text>
-      </TouchableOpacity>
-
-      {outcome && (
-        <View style={styles.resultBox}>
-          <Text style={styles.resultLabel}>Predicted emotional outcome</Text>
-          <Text style={styles.resultMood}>{outcome.resultMood}</Text>
-          <Text style={styles.resultAdvice}>{outcome.advice}</Text>
+          <Text style={[styles.label, { marginTop: 10 }]}>Reflection</Text>
+          <Text style={styles.entryText}>
+            {entryText !== ""
+              ? entryText
+              : "Open the What-If simulator from a saved reflection to get a more personalised preview, or just type any situation you are thinking about."}
+          </Text>
         </View>
-      )}
-    </ScrollView>
+
+        <Text style={styles.label}>If I choose to...</Text>
+        <TextInput
+          value={action}
+          onChangeText={setAction}
+          placeholder="Example: talk calmly and explain how I feel, or block their number, or move to a new city"
+          placeholderTextColor="#64748b"
+          style={styles.input}
+          multiline
+        />
+
+        <Pressable style={styles.button} onPress={handleRun}>
+          <Text style={styles.buttonText}>Run what-if</Text>
+        </Pressable>
+
+        {outcome && (
+          <View style={styles.resultBox}>
+            <Text style={styles.resultLabel}>Predicted emotional outcome</Text>
+            <Text style={styles.resultMood}>{outcome.resultMood}</Text>
+            <Text style={styles.resultAdvice}>{outcome.advice}</Text>
+          </View>
+        )}
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 20, paddingTop: 40, backgroundColor: "#020617" },
-  title: { fontSize: 22, fontWeight: "700", color: "#e5e7eb", marginBottom: 6 },
+  container: { flex: 1 },
+  scrollContent: {
+    paddingHorizontal: 18,
+    paddingTop: 40,
+    paddingBottom: 24
+  },
+  title: { fontSize: 22, fontWeight: "800", color: "#e5e7eb", marginBottom: 6 },
   subtitle: { fontSize: 13, color: "#9ca3af", marginBottom: 16 },
   box: {
-    backgroundColor: "#0f172a",
+    backgroundColor: "#020617",
     padding: 14,
     borderRadius: 16,
     borderWidth: 1,
@@ -197,7 +211,7 @@ const styles = StyleSheet.create({
     marginBottom: 16
   },
   label: { fontSize: 13, fontWeight: "600", color: "#e5e7eb" },
-  value: { fontSize: 16, fontWeight: "700", color: "#7dd3fc", marginTop: 2 },
+  value: { fontSize: 16, fontWeight: "700", color: "#6366f1", marginTop: 2 },
   entryText: { fontSize: 13, color: "#cbd5e1", marginTop: 4 },
   input: {
     borderWidth: 1,
@@ -208,18 +222,17 @@ const styles = StyleSheet.create({
     color: "#e5e7eb",
     marginTop: 6,
     marginBottom: 14,
-    minHeight: 80,
-    textAlignVertical: "top",
-    fontSize: 13
+    minHeight: 70,
+    textAlignVertical: "top"
   },
   button: {
-    backgroundColor: "#7dd3fc",
+    backgroundColor: "#6366f1",
     paddingVertical: 12,
     borderRadius: 999,
     alignItems: "center",
     marginBottom: 16
   },
-  buttonText: { color: "#020617", fontSize: 15, fontWeight: "700" },
+  buttonText: { color: "#e5e7eb", fontSize: 15, fontWeight: "700" },
   resultBox: {
     backgroundColor: "#020617",
     borderRadius: 16,
