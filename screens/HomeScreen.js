@@ -17,7 +17,7 @@ export default function HomeScreen() {
   const [entries, setEntries] = useState([]);
 
   useEffect(() => {
-    const q = query(collection(db, "entries"), orderBy("timestamp", "desc"), limit(20));
+    const q = query(collection(db, "entries"), orderBy("timestamp", "desc"), limit(30));
     const unsubscribe = onSnapshot(q, snapshot => {
       const list = [];
       snapshot.forEach(d => {
@@ -36,28 +36,26 @@ export default function HomeScreen() {
 
   const totalReflections = entries.length;
 
-  const moodCounts = entries.reduce(
-    (acc, e) => {
-      const key = e.mood || "Unknown";
-      acc[key] = (acc[key] || 0) + 1;
-      return acc;
-    },
-    {}
-  );
-
   const moods = ["Happy", "Calm", "Okay", "Stressed", "Sad"];
-  let dominantMood = "Not enough data";
+  const moodCounts = moods.reduce((acc, m) => {
+    acc[m] = 0;
+    return acc;
+  }, {});
+  entries.forEach(e => {
+    if (moodCounts[e.mood] !== undefined) {
+      moodCounts[e.mood] = moodCounts[e.mood] + 1;
+    }
+  });
+
+  let dominantMood = "No reflections yet";
   let dominantCount = 0;
   moods.forEach(m => {
-    const c = moodCounts[m] || 0;
+    const c = moodCounts[m];
     if (c > dominantCount) {
       dominantCount = c;
       dominantMood = m;
     }
   });
-  if (totalReflections === 0) {
-    dominantMood = "No reflections yet";
-  }
 
   const recentEntries = entries.slice(0, 3);
 
@@ -160,6 +158,46 @@ export default function HomeScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Mood pattern snapshot</Text>
+          </View>
+          {totalReflections === 0 ? (
+            <Text style={styles.emptyText}>
+              Once you have a few entries, Helpr will show how your moods have been trending.
+            </Text>
+          ) : (
+            <View style={styles.moodGraph}>
+              {moods.map(m => {
+                const count = moodCounts[m];
+                const height = 10 + count * 8;
+                return (
+                  <View key={m} style={styles.moodBarItem}>
+                    <View style={[styles.moodBar, { height }]}>
+                      <LinearGradient
+                        colors={
+                          m === "Happy"
+                            ? ["#fbbf24", "#f97316"]
+                            : m === "Calm"
+                            ? ["#22c55e", "#4ade80"]
+                            : m === "Okay"
+                            ? ["#38bdf8", "#0ea5e9"]
+                            : m === "Stressed"
+                            ? ["#f97373", "#ef4444"]
+                            : ["#a855f7", "#6366f1"]
+                        }
+                        style={styles.moodBarFill}
+                      />
+                    </View>
+                    <Text style={styles.moodBarLabel}>{m}</Text>
+                    <Text style={styles.moodBarCount}>{count}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Helpr shortcuts</Text>
           </View>
 
@@ -184,7 +222,7 @@ export default function HomeScreen() {
                 styles.shortcutGreen,
                 pressed && styles.shortcutPressed
               ]}
-              onPress={() => navigation.navigate("Simulator")}
+              onPress={() => navigation.navigate("What-If")}
             >
               <Text style={styles.shortcutTitle}>What-if moment</Text>
               <Text style={styles.shortcutText}>
@@ -337,6 +375,40 @@ const styles = StyleSheet.create({
   entryText: {
     fontSize: 13,
     color: "#cbd5e1",
+    marginTop: 2
+  },
+  moodGraph: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    marginTop: 4
+  },
+  moodBarItem: {
+    alignItems: "center",
+    flex: 1
+  },
+  moodBar: {
+    width: 10,
+    borderRadius: 999,
+    overflow: "hidden",
+    backgroundColor: "#020617",
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    justifyContent: "flex-end"
+  },
+  moodBarFill: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 999
+  },
+  moodBarLabel: {
+    fontSize: 9,
+    color: "#94a3b8",
+    marginTop: 4
+  },
+  moodBarCount: {
+    fontSize: 10,
+    color: "#e5e7eb",
     marginTop: 2
   },
   shortcutRow: {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,71 +10,89 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  serverTimestamp,
+  doc,
+  updateDoc
+} from "firebase/firestore";
 import { db } from "../firebaseConfig";
+import { useRoute, useNavigation } from "@react-navigation/native";
 
 const moods = [
-  { label: "Happy", icon: "happy", color: "#fcd34d" },
-  { label: "Calm", icon: "leaf", color: "#86efac" },
-  { label: "Okay", icon: "remove-circle", color: "#93c5fd" },
-  { label: "Stressed", icon: "flash", color: "#fca5a5" },
-  { label: "Sad", icon: "rainy", color: "#c4b5fd" }
+  { label: "Happy", icon: "happy", color: "#fbbf24" },
+  { label: "Calm", icon: "leaf", color: "#22c55e" },
+  { label: "Okay", icon: "remove-circle", color: "#38bdf8" },
+  { label: "Stressed", icon: "flash", color: "#f97373" },
+  { label: "Sad", icon: "rainy", color: "#a855f7" }
 ];
 
 export default function NewEntryScreen() {
+  const route = useRoute();
+  const navigation = useNavigation();
+  const editingEntry = route.params && route.params.entry ? route.params.entry : null;
+
   const [text, setText] = useState("");
   const [mood, setMood] = useState("");
   const [saving, setSaving] = useState(false);
-  const [savedMessage, setSavedMessage] = useState("");
+  const [message, setMessage] = useState("");
 
-  async function saveEntry() {
-    if (!text.trim() || !mood) {
-      setSavedMessage("Please write something and select a mood.");
-      return;
-    }
-
-    setSaving(true);
-    setSavedMessage("");
-
-    try {
-      await addDoc(collection(db, "entries"), {
-        text,
-        mood,
-        timestamp: serverTimestamp()
-      });
-
+  useEffect(() => {
+    if (editingEntry) {
+      setText(editingEntry.text || "");
+      setMood(editingEntry.mood || "");
+    } else {
       setText("");
       setMood("");
-      setSavedMessage("Entry saved. You can add another reflection.");
-    } catch (error) {
-      setSavedMessage("Entry could not be saved. Check Firebase settings.");
-      console.log("Firestore error:", error);
     }
+    setMessage("");
+  }, [editingEntry]);
 
+  async function handleSave() {
+    if (!text.trim() || !mood) {
+      setMessage("Please write something and select a mood.");
+      return;
+    }
+    setSaving(true);
+    setMessage("");
+    try {
+      if (editingEntry) {
+        const ref = doc(db, "entries", editingEntry.id);
+        await updateDoc(ref, {
+          text,
+          mood
+        });
+        setMessage("Reflection updated.");
+      } else {
+        await addDoc(collection(db, "entries"), {
+          text,
+          mood,
+          timestamp: serverTimestamp()
+        });
+        setText("");
+        setMood("");
+        setMessage("Entry saved. You can add another reflection.");
+      }
+    } catch (e) {
+      setMessage("Something went wrong saving this entry.");
+    }
     setSaving(false);
   }
 
+  const title = editingEntry ? "Edit reflection" : "New reflection";
+  const subtitle = editingEntry
+    ? "Update how you feel and what has changed."
+    : "Describe what happened and how it felt.";
+
   return (
-    <LinearGradient colors={["#050814", "#0b1027"]} style={styles.container}>
+    <LinearGradient colors={["#020617", "#020617"]} style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <Text style={styles.title}>New reflection</Text>
-        <Text style={styles.subtitle}>Describe what happened and how it felt.</Text>
-
-        {savedMessage !== "" && (
-          <View
-            style={[
-              styles.messageBox,
-              savedMessage.startsWith("Entry saved")
-                ? styles.messageSuccess
-                : styles.messageError
-            ]}
-          >
-            <Text style={styles.messageText}>{savedMessage}</Text>
-          </View>
-        )}
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
 
         <Text style={styles.label}>Your entry</Text>
         <TextInput
@@ -88,7 +106,7 @@ export default function NewEntryScreen() {
 
         <Text style={styles.label}>Mood</Text>
         <View style={styles.moodRow}>
-          {moods.map((m) => {
+          {moods.map(m => {
             const selected = mood === m.label;
             return (
               <Pressable
@@ -103,12 +121,12 @@ export default function NewEntryScreen() {
                 <Ionicons
                   name={m.icon}
                   size={16}
-                  color={selected ? "#050814" : m.color}
+                  color={selected ? "#020617" : m.color}
                 />
                 <Text
                   style={[
                     styles.moodText,
-                    selected && { color: "#050814" }
+                    selected && { color: "#020617" }
                   ]}
                 >
                   {m.label}
@@ -118,11 +136,22 @@ export default function NewEntryScreen() {
           })}
         </View>
 
-        <Pressable onPress={saveEntry} disabled={saving} style={styles.saveWrap}>
+        {message !== "" && <Text style={styles.message}>{message}</Text>}
+
+        <Pressable onPress={handleSave} disabled={saving} style={styles.saveWrap}>
           <LinearGradient colors={["#7dd3fc", "#a78bfa"]} style={styles.saveButton}>
-            <Text style={styles.saveText}>{saving ? "Saving..." : "Save entry"}</Text>
+            <Text style={styles.saveText}>{saving ? "Saving..." : editingEntry ? "Save changes" : "Save entry"}</Text>
           </LinearGradient>
         </Pressable>
+
+        {editingEntry && (
+          <Pressable
+            style={styles.backLinkWrap}
+            onPress={() => navigation.navigate("Entries")}
+          >
+            <Text style={styles.backLink}>Back to all reflections</Text>
+          </Pressable>
+        )}
       </KeyboardAvoidingView>
     </LinearGradient>
   );
@@ -138,13 +167,18 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#18213a",
-    backgroundColor: "#0a0f23",
+    backgroundColor: "#020617",
     color: "#e2e8f0",
     padding: 12,
     textAlignVertical: "top",
     marginBottom: 14
   },
-  moodRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 18 },
+  moodRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 10
+  },
   moodChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -153,26 +187,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 999,
     borderWidth: 1,
-    backgroundColor: "#050814"
+    backgroundColor: "#020617"
   },
   moodText: { color: "#e2e8f0", fontSize: 13, fontWeight: "700" },
-  saveWrap: { marginTop: "auto", marginBottom: 24 },
-  saveButton: { paddingVertical: 12, borderRadius: 999, alignItems: "center" },
-  saveText: { color: "#050814", fontSize: 15, fontWeight: "800" },
-  messageBox: {
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 12
+  message: {
+    fontSize: 12,
+    color: "#a5b4fc",
+    marginBottom: 10,
+    marginTop: 2
   },
-  messageSuccess: {
-    backgroundColor: "#22c55e20",
-    borderWidth: 1,
-    borderColor: "#22c55e"
+  saveWrap: { marginTop: "auto", marginBottom: 16 },
+  saveButton: {
+    paddingVertical: 12,
+    borderRadius: 999,
+    alignItems: "center"
   },
-  messageError: {
-    backgroundColor: "#ef444420",
-    borderWidth: 1,
-    borderColor: "#ef4444"
+  saveText: {
+    color: "#020617",
+    fontSize: 15,
+    fontWeight: "800"
   },
-  messageText: { fontSize: 13, color: "#e2e8f0" }
+  backLinkWrap: {
+    alignItems: "center",
+    marginBottom: 10
+  },
+  backLink: {
+    fontSize: 12,
+    color: "#7dd3fc",
+    textDecorationLine: "underline"
+  }
 });
