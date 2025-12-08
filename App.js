@@ -13,7 +13,7 @@ const theme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: "#050814"
+    background: "#020617"
   }
 };
 
@@ -23,23 +23,21 @@ export default function App() {
       <Tab.Navigator
         screenOptions={({ route }) => {
           let icon = "ellipse";
-
-          if (route.name === "Home") icon = "sparkles";
+          if (route.name === "Home") icon = "home";
           if (route.name === "New Entry") icon = "add-circle";
           if (route.name === "Entries") icon = "book";
-          if (route.name === "Simulator") icon = "planet";
-
+          if (route.name === "What-If") icon = "sparkles";
           return {
             headerShown: false,
             tabBarStyle: {
-              backgroundColor: "#0a0f23",
-              borderTopColor: "#151a33",
+              backgroundColor: "#020617",
+              borderTopColor: "#0f172a",
               height: 64,
               paddingBottom: 8,
               paddingTop: 6
             },
             tabBarActiveTintColor: "#7dd3fc",
-            tabBarInactiveTintColor: "#94a3b8",
+            tabBarInactiveTintColor: "#64748b",
             tabBarIcon: ({ color, size }) => (
               <Ionicons name={icon} size={size} color={color} />
             ),
@@ -53,7 +51,7 @@ export default function App() {
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="New Entry" component={NewEntryScreen} />
         <Tab.Screen name="Entries" component={EntriesScreen} />
-        <Tab.Screen name="Simulator" component={SimulatorScreen} />
+        <Tab.Screen name="What-If" component={SimulatorScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );
